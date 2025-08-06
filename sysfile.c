@@ -66,6 +66,8 @@ sys_dup(void)
   return fd;
 }
 
+// read counter initialised in kernel memory
+int read_counter = 0;
 int
 sys_read(void)
 {
@@ -75,7 +77,15 @@ sys_read(void)
 
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
+
+  // incrementing read_counter
+  read_counter++;
   return fileread(f, p, n);
+}
+
+// getreadcount system call
+int sys_getreadcount(void) {
+  return read_counter;
 }
 
 int
