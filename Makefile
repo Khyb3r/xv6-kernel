@@ -28,6 +28,7 @@ OBJS = \
 	vectors.o\
 	vm.o\
 
+
 all: xv6.img
 
 # Cross-compiling (e.g., on Mac OS X)
@@ -183,6 +184,7 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
+	_getreadcount_test\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
