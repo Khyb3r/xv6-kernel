@@ -20,6 +20,9 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+void calc_total_tickets(void);
+int random_number_generator(void);
+
 void
 pinit(void)
 {
@@ -112,6 +115,8 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  // set default tickets
+  p->tickets = 1;
   return p;
 }
 
@@ -319,6 +324,8 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+int total_tickets = 0;
+int random_seed = 12345;
 void
 scheduler(void)
 {
@@ -332,9 +339,14 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    calc_total_tickets();
+    int random_num = random_number_generator();
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
+
+      if (random_num)
+
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -354,6 +366,26 @@ scheduler(void)
 
   }
 }
+
+// calculates the total tickets in the system currently
+void calc_total_tickets() {
+  struct proc *p;
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->state != RUNNABLE) {
+      continue;
+    }
+    total_tickets += p->tickets;
+  }
+}
+
+// picks a random number so our lottery scheduling works
+int random_number_generator() {
+  total_tickets = 0;
+  random_seed = (1103515245 * random_seed + 12345) % 2^31;
+  return random_seed % total_tickets;
+}
+
+
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores

@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "pstat.h"
 
 int
 sys_fork(void)
@@ -88,4 +89,28 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// allows user to manually set tickets in the lottery scheduler
+// returns 0 if successful, -1 if otherwise
+int
+sys_settickets(void) {
+  int tickets_number;
+  struct proc *curr_p = myproc();
+  if (argint(0, &tickets_number) < 0 || tickets_number < 1) {
+    return -1;
+  }
+  curr_p->tickets = tickets_number;
+  return 0;
+}
+
+// returns some information about all running processes
+// returns 0 if successful, -1 if otherwise
+int
+sys_getpinfo(void) {
+  struct pstat *pstat;
+  if (argptr(0, (char **)&pstat, sizeof(*pstat)) < 0) {
+    return -1;
+  }
+  return 0;
 }
