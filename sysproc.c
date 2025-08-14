@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "types.h"
 #include "x86.h"
 #include "defs.h"
@@ -109,7 +111,7 @@ sys_settickets(void) {
 int
 sys_getpinfo(void) {
   struct pstat *pstat;
-  if (argptr(0, (char **)&pstat, sizeof(*pstat)) < 0) {
+  if ((argptr(0, (char **)&pstat, sizeof(*pstat)) < 0) || pstat == NULL) {
     return -1;
   }
   return 0;

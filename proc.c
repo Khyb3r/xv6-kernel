@@ -21,7 +21,7 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 void calc_total_tickets(void);
-int random_number_generator(void);
+uint random_number_generator(void);
 
 void
 pinit(void)
@@ -221,6 +221,9 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  // child should have same tickets as parent
+  np->tickets = curproc->tickets;
+
   release(&ptable.lock);
 
   return pid;
@@ -339,36 +342,48 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+    // calc total tickets first so random_generator doesn't throw error
     calc_total_tickets();
-    int random_num = random_number_generator();
+
+    // if no processes are ready as total tickets is 0
+    if (total_tickets == 0) {
+      release(&ptable.lock);
+      continue;
+    }
+
+    uint random_num = random_number_generator();
+    int counter = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
 
-      if (random_num)
+      counter += p->tickets;
+      if (counter > random_num) {
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
 
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        break;
+      }
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
     }
     release(&ptable.lock);
-
   }
 }
 
 // calculates the total tickets in the system currently
 void calc_total_tickets() {
+  total_tickets = 0;
   struct proc *p;
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if (p->state != RUNNABLE) {
@@ -379,9 +394,8 @@ void calc_total_tickets() {
 }
 
 // picks a random number so our lottery scheduling works
-int random_number_generator() {
-  total_tickets = 0;
-  random_seed = (1103515245 * random_seed + 12345) % 2^31;
+uint random_number_generator() {
+  random_seed = (1103515245 * random_seed + 12345) % 2147483647;
   return random_seed % total_tickets;
 }
 
