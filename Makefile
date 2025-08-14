@@ -185,6 +185,7 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_getreadcount_test\
+	_ps_test\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

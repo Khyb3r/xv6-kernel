@@ -50,6 +50,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int tickets;                 // Process ticket count for lottery scheduling
+  int ticks;                   // Tick count for how many times a process has been scheduled
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -57,3 +58,6 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+// declaration of getpinfo method which we'll use
+int ps(struct pstat*);

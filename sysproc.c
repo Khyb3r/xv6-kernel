@@ -114,5 +114,5 @@ sys_getpinfo(void) {
   if ((argptr(0, (char **)&pstat, sizeof(*pstat)) < 0) || pstat == NULL) {
     return -1;
   }
-  return 0;
+  return ps(pstat);
 }

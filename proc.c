@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pstat.h"
 
 struct {
   struct spinlock lock;
@@ -115,8 +116,10 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
-  // set default tickets
+  // set default tickets and
+  // ticks (times a process has been scheduled)
   p->tickets = 1;
+  p->ticks = 0;
   return p;
 }
 
@@ -360,6 +363,8 @@ scheduler(void)
 
       counter += p->tickets;
       if (counter > random_num) {
+        // increment process ticks
+        p->ticks++;
         // Switch to chosen process.  It is the process's job
         // to release ptable.lock and then reacquire it
         // before jumping back to us.
@@ -398,6 +403,35 @@ uint random_number_generator() {
   random_seed = (1103515245 * random_seed + 12345) % 2147483647;
   return random_seed % total_tickets;
 }
+
+// fills in the pstat structure on the kernel side first and then copies
+// it to the user side via the inputted pstat pointer
+// returns 0 if successful
+// -1 if otherwise
+int ps(struct pstat *pstat) {
+  struct pstat k_pstat;
+  struct proc *p;
+  int i = 0;
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++, i++) {
+    if (p->state != UNUSED) {
+      k_pstat.inuse[i] = 1;
+    }
+    else {
+      k_pstat.inuse[i] = 0;
+    }
+    k_pstat.tickets[i] = p->tickets;
+    k_pstat.pid[i] = p->pid;
+    k_pstat.ticks[i] = p->ticks;
+  }
+  // safely write to user address space
+  if (copyout(myproc()->pgdir, (uint)pstat, &k_pstat, sizeof(k_pstat)) < 0) {
+    return -1;
+  }
+  return 0;
+}
+
+
+
 
 
 
