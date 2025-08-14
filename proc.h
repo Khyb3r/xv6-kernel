@@ -58,6 +58,3 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
-
-// declaration of getpinfo method which we'll use
-int ps(struct pstat*);
