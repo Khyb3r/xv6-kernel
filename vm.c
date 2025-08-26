@@ -56,16 +56,19 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   return &pgtab[PTX(va)];
 }
 
+
+
+
 // read-only code region mapper
 int mprotect(void *address, int length) {
   uint addr = (uint)address;
   struct proc *proc = myproc();
-  if (addr % PGSIZE != 0 || length <= 0 || addr > proc->sz) {
+  if (addr % PGSIZE != 0 || length <= 0 || addr > proc->sz || addr + (PGSIZE * length) >= proc->sz) {
     return -1;
   }
   for (uint i = addr; i < addr+(PGSIZE*length); i += PGSIZE) {
     pte_t *pte = walkpgdir(proc->pgdir, (const void *)i, 0);
-    if (pte == NULL || *pte & PTE_P == 0) {
+    if (pte == NULL || ((*pte & PTE_P) == 0)) {
       return -1;
     }
     // make sure write bits cleared
@@ -81,12 +84,12 @@ int mprotect(void *address, int length) {
 int munprotect(void *address, int length) {
   uint addr = (uint)address;
   struct proc *proc = myproc();
-  if (addr % PGSIZE != 0 || length <= 0 || addr > proc->sz) {
+  if (addr % PGSIZE != 0 || length <= 0 || addr > proc->sz || addr + (PGSIZE * length) >= proc->sz) {
     return -1;
   }
   for (uint i = addr; i < addr+(PGSIZE*length); i += PGSIZE) {
     pte_t *pte = walkpgdir(proc->pgdir, (const void *)i, 0);
-    if (pte == NULL || *pte & PTE_P == 0) {
+    if (pte == NULL || ((*pte & PTE_P) == 0)) {
       return -1;
     }
     // make sure write bits are set
@@ -97,6 +100,9 @@ int munprotect(void *address, int length) {
   lcr3(V2P(proc->pgdir));
   return 0;
 }
+
+
+
 
 
 // Create PTEs for virtual addresses starting at va that refer to

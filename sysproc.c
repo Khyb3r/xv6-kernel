@@ -130,7 +130,6 @@ sys_mprotect(void) {
   if (argint(1, &length) < 0) {
     return -1;
   }
-
   return mprotect(addr, length);
 }
 
