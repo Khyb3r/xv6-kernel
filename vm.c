@@ -68,8 +68,8 @@ int mprotect(void *address, int length) {
     if (pte == NULL || *pte & PTE_P == 0) {
       return -1;
     }
-    // make sure write bits are not set otherwise it'll flip back over
-    if ((*pte & PTE_W) == 0) {
+    // make sure write bits cleared
+    if ((*pte & PTE_W) != 0) {
       *pte = *pte & ~PTE_W;
     }
   }
@@ -89,8 +89,8 @@ int munprotect(void *address, int length) {
     if (pte == NULL || *pte & PTE_P == 0) {
       return -1;
     }
-    // make sure write bits are not set otherwise it'll flip back over
-    if ((*pte & PTE_W) != 0) {
+    // make sure write bits are set
+    if ((*pte & PTE_W) == 0) {
       *pte = *pte | PTE_W;
     }
   }
