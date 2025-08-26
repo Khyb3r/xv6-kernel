@@ -187,6 +187,7 @@ UPROGS=\
 	_getreadcount_test\
 	_ps_test\
 	_nulldereftest\
+	_readonlytest\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
