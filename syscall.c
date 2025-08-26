@@ -108,6 +108,9 @@ extern int sys_getreadcount(void);
 extern int sys_settickets(void);
 extern int sys_getpinfo(void);
 
+extern int sys_mprotect(void);
+extern int sys_munprotect(void);
+
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -134,6 +137,9 @@ static int (*syscalls[])(void) = {
 
 [SYS_settickets] sys_settickets,
 [SYS_getpinfo] sys_getpinfo,
+
+[SYS_mprotect] sys_mprotect,
+[SYS_munprotect] sys_munprotect,
 };
 
 void

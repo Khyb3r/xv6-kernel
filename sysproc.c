@@ -116,3 +116,35 @@ sys_getpinfo(void) {
   }
   return ps(pstat);
 }
+
+
+// change region of code to read only
+int
+sys_mprotect(void) {
+  void *addr;
+  int length;
+  // fetch arguments from user stack
+  if (argptr(0, (char **)&addr, sizeof(void*)) < 0 || addr == NULL) {
+    return -1;
+  }
+  if (argint(1, &length) < 0) {
+    return -1;
+  }
+
+  return mprotect(addr, length);
+}
+
+// change region of code to read only
+int
+sys_munprotect(void) {
+  void *addr;
+  int length;
+  // fetch arguments from user stack
+  if (argptr(0, (char **)&addr, sizeof(void*)) < 0 || addr == NULL) {
+    return -1;
+  }
+  if (argint(1, &length) < 0) {
+    return -1;
+  }
+  return mprotect(addr, length);
+}

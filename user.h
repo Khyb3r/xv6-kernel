@@ -31,6 +31,12 @@ int getreadcount(void);
 int settickets(int number);
 int getpinfo(struct pstat *);
 
+// for changing code regions to be read-only
+int mprotect(void *addr, int len);
+
+// for changing code region back to read-write
+int munprotect(void *addr, int len);
+
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
