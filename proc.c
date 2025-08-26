@@ -430,22 +430,6 @@ int ps(struct pstat *pstat) {
   return 0;
 }
 
-// read-only code methods
-
-int mprotect(void *address, int length) {
-  uint addr = (uint)address;
-  if (addr % PGSIZE != 0 || length <= 0) {
-    return -1;
-  }
-
-}
-int munprotect(void *address, int length) {
-  uint addr = (uint)address;
-  if (addr % PGSIZE != 0 || length <= 0) {
-    return -1;
-  }
-}
-
 
 
 // Enter scheduler.  Must hold only ptable.lock

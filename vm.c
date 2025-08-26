@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "param.h"
 #include "types.h"
 #include "defs.h"
@@ -53,6 +55,49 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   }
   return &pgtab[PTX(va)];
 }
+
+// read-only code region mapper
+int mprotect(void *address, int length) {
+  uint addr = (uint)address;
+  struct proc *proc = myproc();
+  if (addr % PGSIZE != 0 || length <= 0 || addr > proc->sz) {
+    return -1;
+  }
+  for (uint i = addr; i < addr+(PGSIZE*length); i += PGSIZE) {
+    pte_t *pte = walkpgdir(proc->pgdir, (const void *)i, 0);
+    if (pte == NULL || *pte & PTE_P == 0) {
+      return -1;
+    }
+    // make sure write bits are not set otherwise it'll flip back over
+    if ((*pte & PTE_W) == 0) {
+      *pte = *pte & ~PTE_W;
+    }
+  }
+  lcr3(V2P(proc->pgdir));
+  return 0;
+}
+
+// revert to read/write region mappings
+int munprotect(void *address, int length) {
+  uint addr = (uint)address;
+  struct proc *proc = myproc();
+  if (addr % PGSIZE != 0 || length <= 0 || addr > proc->sz) {
+    return -1;
+  }
+  for (uint i = addr; i < addr+(PGSIZE*length); i += PGSIZE) {
+    pte_t *pte = walkpgdir(proc->pgdir, (const void *)i, 0);
+    if (pte == NULL || *pte & PTE_P == 0) {
+      return -1;
+    }
+    // make sure write bits are not set otherwise it'll flip back over
+    if ((*pte & PTE_W) != 0) {
+      *pte = *pte | PTE_W;
+    }
+  }
+  lcr3(V2P(proc->pgdir));
+  return 0;
+}
+
 
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
