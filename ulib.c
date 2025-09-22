@@ -3,6 +3,7 @@
 #include "fcntl.h"
 #include "user.h"
 #include "x86.h"
+#include "stddef.h"
 
 char*
 strcpy(char *s, const char *t)
@@ -115,5 +116,13 @@ int thread_create(void (*start_routine) (void *, void *), void *arg1, void *arg2
     return -1;
   }
   return rc;
+}
+int thread_join() {
+  void *stack_addr;
+  int threadid = join(&stack_addr);
+  if (threadid > 0) {
+    free(stack_addr);
+  }
+  return 0;
 }
 

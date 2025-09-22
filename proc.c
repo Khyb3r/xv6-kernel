@@ -241,21 +241,26 @@ clone(void *thread_func, void *arg1, void *arg2, void *stack_addr) {
   if ((new_thread = allocproc()) == 0) {
     return -1;
   }
+  char *aligned_p = stack_addr;
+  // stack isn't page aligned
+  if ((uint)stack_addr % PGSIZE != 0) {
+    // round up to next page
+    aligned_p = (char *)(((uint)stack_addr + 4096 - 1) & ~(4096 - 1));
+  }
 
   new_thread->pgdir = cur_proc->pgdir;
-  if ((uint)stack_addr % PGSIZE != 0) {
-    // not page aligned round up to next page
-    return -1;
-  }
   uint ret_addr = 0xFFFFFFFF;
+  new_thread->sz = cur_proc->sz;
+  new_thread->parent = cur_proc;
   *new_thread->tf = *cur_proc->tf;
-  uint stack_top = (uint)stack_addr + PGSIZE;
+  new_thread->thread_stack = stack_addr;
+  uint stack_top = (uint)aligned_p + PGSIZE;
   *(uint *)(stack_top - 4) = ret_addr;
-  *(uint *)(stack_top - 8) = arg2;
-  *(uint *)(stack_top - 12) = arg1;
+  *(uint *)(stack_top - 8) = (uint)arg2;
+  *(uint *)(stack_top - 12) = (uint)arg1;
   new_thread->tf->esp = (uint)stack_top - 12;
-  new_thread->tf->eax = 0;
   new_thread->tf->eip = (uint)thread_func;
+  new_thread->tf->eax = 0;
 
   for (i = 0; i < NOFILE; i++)
     if (cur_proc->ofile[i])
@@ -272,12 +277,36 @@ clone(void *thread_func, void *arg1, void *arg2, void *stack_addr) {
   return pid;
 }
 
-
-
-
-
-
-
+int
+join(void **stack) {
+  void *stack_addr = *stack;
+  struct proc *cur_p = myproc();
+  struct proc *p;
+  int pid;
+  int child_id_found = 0;
+  // look through process table and see if any child thread has exited, look indefinitely until 1 child thread returns
+  for (;;) {
+    acquire(&ptable.lock);
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if (p->pgdir == cur_p->pgdir) {
+        // in same address space
+        if (p->state == ZOMBIE) {
+          // child thread exited
+          pid = p->pid;
+          child_id_found = 1;
+          break;
+        }
+      }
+    }
+    release(&ptable.lock);
+    kfree(p->kstack);
+    p->state = UNUSED;
+    if (child_id_found) {
+      break;
+    }
+  }
+  return pid;
+}
 
 
 // Exit the current process.  Does not return.

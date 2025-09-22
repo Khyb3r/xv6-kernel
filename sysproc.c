@@ -151,17 +151,26 @@ sys_munprotect(void) {
 int
 sys_clone(void) {
   void *thread_func, *stack_addr, *param_one, *param_two;
-  if (argptr(0, (char **)&thread_func, sizeof(void*)) < 0 || thread_func || NULL) {
+  if (argptr(0, (char **)&thread_func, sizeof(void*)) < 0 || thread_func == NULL) {
     return -1;
   }
-  if (argptr(1, (char **)&param_one, sizeof(void*)) < 0 || thread_func || NULL) {
+  if (argptr(1, (char **)&param_one, sizeof(void*)) < 0 || thread_func == NULL) {
     return -1;
   }
-  if (argptr(2, (char **)&param_two, sizeof(void*)) < 0 || thread_func || NULL) {
+  if (argptr(2, (char **)&param_two, sizeof(void*)) < 0 || thread_func == NULL) {
     return -1;
   }
-  if (argptr(3, (char **)&stack_addr, sizeof(void*)) < 0 || thread_func || NULL) {
+  if (argptr(3, (char **)&stack_addr, sizeof(void*)) < 0 || thread_func == NULL) {
     return -1;
   }
   return clone(thread_func, param_one, param_two, stack_addr);
+}
+
+int
+sys_join(void) {
+  void *stack_addr;
+  if (argptr(0, (char**) &stack_addr, sizeof(void *)) < 0 || stack_addr == NULL) {
+    return -1;
+  }
+  return join(&stack_addr);
 }

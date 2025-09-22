@@ -51,6 +51,7 @@ struct proc {
   char name[16];               // Process name (debugging)
   int tickets;                 // Process ticket count for lottery scheduling
   int ticks;                   // Tick count for how many times a process has been scheduled
+  void *thread_stack;          // Thread stack pointer to track the malloc'd pointer to a block for the user stack
 };
 
 // Process memory is laid out contiguously, low addresses first:
