@@ -104,3 +104,16 @@ memmove(void *vdst, const void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+int thread_create(void (*start_routine) (void *, void *), void *arg1, void *arg2) {
+  // 4kb user stack, overallocate so we can page align it
+  char *u_stack = malloc(sizeof(char) * 8191);
+  if (u_stack == NULL) {
+    return -1;
+  }
+  int rc = clone(start_routine, arg1, arg2, u_stack);
+  if (rc < 0) {
+    return -1;
+  }
+  return rc;
+}
+

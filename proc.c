@@ -232,6 +232,54 @@ fork(void)
   return pid;
 }
 
+int
+clone(void *thread_func, void *arg1, void *arg2, void *stack_addr) {
+  int i, pid;
+  struct proc *new_thread;
+  struct proc *cur_proc = myproc();
+
+  if ((new_thread = allocproc()) == 0) {
+    return -1;
+  }
+
+  new_thread->pgdir = cur_proc->pgdir;
+  if ((uint)stack_addr % PGSIZE != 0) {
+    // not page aligned round up to next page
+    return -1;
+  }
+  uint ret_addr = 0xFFFFFFFF;
+  *new_thread->tf = *cur_proc->tf;
+  uint stack_top = (uint)stack_addr + PGSIZE;
+  *(uint *)(stack_top - 4) = ret_addr;
+  *(uint *)(stack_top - 8) = arg2;
+  *(uint *)(stack_top - 12) = arg1;
+  new_thread->tf->esp = (uint)stack_top - 12;
+  new_thread->tf->eax = 0;
+  new_thread->tf->eip = (uint)thread_func;
+
+  for (i = 0; i < NOFILE; i++)
+    if (cur_proc->ofile[i])
+      new_thread->ofile[i] = filedup(cur_proc->ofile[i]);
+
+  new_thread->cwd = idup(cur_proc->cwd);
+  pid = new_thread->pid;
+
+  acquire(&ptable.lock);
+  new_thread->state = RUNNABLE;
+  new_thread->tickets = cur_proc->tickets;
+  release(&ptable.lock);
+
+  return pid;
+}
+
+
+
+
+
+
+
+
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.

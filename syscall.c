@@ -111,6 +111,9 @@ extern int sys_getpinfo(void);
 extern int sys_mprotect(void);
 extern int sys_munprotect(void);
 
+extern int sys_clone(void);
+extern int sys_join(void);
+
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -140,6 +143,9 @@ static int (*syscalls[])(void) = {
 
 [SYS_mprotect] sys_mprotect,
 [SYS_munprotect] sys_munprotect,
+
+[SYS_clone] sys_clone,
+[SYS_join] sys_join,
 };
 
 void

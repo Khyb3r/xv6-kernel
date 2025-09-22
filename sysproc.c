@@ -147,3 +147,21 @@ sys_munprotect(void) {
   }
   return mprotect(addr, length);
 }
+
+int
+sys_clone(void) {
+  void *thread_func, *stack_addr, *param_one, *param_two;
+  if (argptr(0, (char **)&thread_func, sizeof(void*)) < 0 || thread_func || NULL) {
+    return -1;
+  }
+  if (argptr(1, (char **)&param_one, sizeof(void*)) < 0 || thread_func || NULL) {
+    return -1;
+  }
+  if (argptr(2, (char **)&param_two, sizeof(void*)) < 0 || thread_func || NULL) {
+    return -1;
+  }
+  if (argptr(3, (char **)&stack_addr, sizeof(void*)) < 0 || thread_func || NULL) {
+    return -1;
+  }
+  return clone(thread_func, param_one, param_two, stack_addr);
+}
