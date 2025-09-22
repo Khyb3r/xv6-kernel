@@ -5,6 +5,9 @@
 #include "mmu.h"
 #include "x86.h"
 #include "proc.h"
+
+#include <stddef.h>
+
 #include "spinlock.h"
 #include "pstat.h"
 
@@ -279,33 +282,41 @@ clone(void *thread_func, void *arg1, void *arg2, void *stack_addr) {
 
 int
 join(void **stack) {
-  void *stack_addr = *stack;
   struct proc *cur_p = myproc();
   struct proc *p;
   int pid;
   int child_id_found = 0;
   // look through process table and see if any child thread has exited, look indefinitely until 1 child thread returns
+  acquire(&ptable.lock);
   for (;;) {
-    acquire(&ptable.lock);
+    child_id_found = 0;
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-      if (p->pgdir == cur_p->pgdir) {
-        // in same address space
-        if (p->state == ZOMBIE) {
-          // child thread exited
-          pid = p->pid;
-          child_id_found = 1;
-          break;
-        }
+      if (p->parent != cur_p) continue;
+      if (p->pgdir != cur_p->pgdir) continue;
+      // child thread exists
+      child_id_found = 1;
+      if (p->state == ZOMBIE) {
+        // child thread has exited
+        pid = p->pid;
+        *stack = p->thread_stack;
+        kfree(p->kstack);
+        p->kstack = 0;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->thread_stack = 0;
+        p->state = UNUSED;
+        release(&ptable.lock);
+        return pid;
       }
     }
-    release(&ptable.lock);
-    kfree(p->kstack);
-    p->state = UNUSED;
-    if (child_id_found) {
-      break;
+    if (!child_id_found || cur_p->killed) {
+        release(&ptable.lock);
+        return -1;
     }
+    sleep(cur_p, &ptable.lock);
   }
-  return pid;
 }
 
 
@@ -343,6 +354,8 @@ exit(void)
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
+      if (p->pgdir == curproc->pgdir)
+        continue;
       p->parent = initproc;
       if(p->state == ZOMBIE)
         wakeup1(initproc);
@@ -371,18 +384,23 @@ wait(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != curproc)
         continue;
+      if (p->pgdir == curproc->pgdir)
+        continue;
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        freevm(p->pgdir);
+        int remaining_refs = pgdir_refs_count(p);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        if (remaining_refs == 1) {
+          freevm(p->pgdir);
+        }
         release(&ptable.lock);
         return pid;
       }
@@ -397,6 +415,20 @@ wait(void)
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }
+}
+
+// check how many child threads are still running
+int
+pgdir_refs_count(struct proc *cur_p) {
+  struct proc *p;
+  int count = 0;
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->pgdir == cur_p->pgdir && p->state != ZOMBIE && p->state != UNUSED) {
+      count++;
+    }
+  }
+  return count;
+
 }
 
 //PAGEBREAK: 42

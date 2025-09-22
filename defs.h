@@ -124,6 +124,7 @@ void            yield(void);
 int             ps(struct pstat*);
 int             clone(void *, void *, void *, void *);
 int             join(void **);
+int             pgdir_refs_count(struct proc *);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
