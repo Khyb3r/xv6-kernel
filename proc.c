@@ -244,24 +244,28 @@ clone(void *thread_func, void *arg1, void *arg2, void *stack_addr) {
   if ((new_thread = allocproc()) == 0) {
     return -1;
   }
-  char *aligned_p = stack_addr;
-  // stack isn't page aligned
-  if ((uint)stack_addr % PGSIZE != 0) {
-    // round up to next page
-    aligned_p = (char *)(((uint)stack_addr + 4096 - 1) & ~(4096 - 1));
-  }
+
+  char *stack_orig_p = stack_addr;
 
   new_thread->pgdir = cur_proc->pgdir;
-  uint ret_addr = 0xFFFFFFFF;
   new_thread->sz = cur_proc->sz;
   new_thread->parent = cur_proc;
   *new_thread->tf = *cur_proc->tf;
-  new_thread->thread_stack = stack_addr;
-  uint stack_top = (uint)aligned_p + PGSIZE;
-  *(uint *)(stack_top - 4) = ret_addr;
-  *(uint *)(stack_top - 8) = (uint)arg2;
-  *(uint *)(stack_top - 12) = (uint)arg1;
-  new_thread->tf->esp = (uint)stack_top - 12;
+  new_thread->thread_stack = stack_orig_p;
+
+  uint stack_top = (uint)stack_addr + 4096;
+  uint ret_addr = 0xFFFFFFFF;
+
+  stack_top -= sizeof(uint);
+  *(uint *)stack_top = (uint)arg2;
+
+  stack_top -= sizeof(uint);
+  *(uint *)stack_top = (uint)arg1;
+
+  stack_top -= sizeof(uint);
+  *(uint *)stack_top = ret_addr;
+
+  new_thread->tf->esp = (uint)stack_top;
   new_thread->tf->eip = (uint)thread_func;
   new_thread->tf->eax = 0;
 
@@ -354,8 +358,9 @@ exit(void)
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
-      if (p->pgdir == curproc->pgdir)
+      if (p->pgdir == curproc->pgdir) {
         continue;
+      }
       p->parent = initproc;
       if(p->state == ZOMBIE)
         wakeup1(initproc);

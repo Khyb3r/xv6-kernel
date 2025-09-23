@@ -109,7 +109,7 @@ memmove(void *vdst, const void *vsrc, int n)
 // creates thread and returns thread (process) id
 int thread_create(void (*start_routine) (void *, void *), void *arg1, void *arg2) {
   // 4kb user stack, overallocate so we can page align it
-  char *u_stack = malloc(sizeof(char) * 8191);
+  char *u_stack = malloc(4096);
   if (u_stack == NULL) {
     return -1;
   }
@@ -122,7 +122,7 @@ int thread_create(void (*start_routine) (void *, void *), void *arg1, void *arg2
 
 // waits/blocks for thread to finish executing
 int thread_join() {
-  void *stack_addr;
+  void *stack_addr = NULL;
   int thread_id = join(&stack_addr);
   if (thread_id > 0) {
     // free thread local storage
