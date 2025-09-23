@@ -54,5 +54,15 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+// thread library
+typedef struct {
+  int ticket;
+  int turn;
+} lock_t;
 int thread_create(void (*start_routine) (void *, void *), void *arg1, void *arg2);
 int thread_join();
+void lock_acquire(lock_t *);
+void lock_release(lock_t *);
+void lock_init(lock_t *);
+static inline int fetch_and_add(int *, int);

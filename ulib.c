@@ -105,6 +105,8 @@ memmove(void *vdst, const void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+
+// creates thread and returns thread (process) id
 int thread_create(void (*start_routine) (void *, void *), void *arg1, void *arg2) {
   // 4kb user stack, overallocate so we can page align it
   char *u_stack = malloc(sizeof(char) * 8191);
@@ -117,12 +119,44 @@ int thread_create(void (*start_routine) (void *, void *), void *arg1, void *arg2
   }
   return rc;
 }
+
+// waits/blocks for thread to finish executing
 int thread_join() {
   void *stack_addr;
-  int threadid = join(&stack_addr);
-  if (threadid > 0) {
+  int thread_id = join(&stack_addr);
+  if (thread_id > 0) {
+    // free thread local storage
     free(stack_addr);
   }
-  return 0;
+  return thread_id;
+}
+
+// ticket lock implementation
+void lock_init(lock_t *lock) {
+  lock->turn = 0;
+  lock->ticket = 0;
+}
+
+// spin-lock till its your turn
+void lock_acquire(lock_t *lock) {
+  int my_ticket = fetch_and_add(&lock->ticket, 1);
+
+  while (lock->turn != my_ticket) {
+    // spin
+  }
+}
+
+void lock_release(lock_t *lock) {
+  lock->turn++;
+}
+
+// atomic fetchAndAdd x86 assembly
+static inline int fetch_and_add(int *variable, int value) {
+  __asm__ volatile("lock; xaddl %0, %1"
+    : "+r" (value), "+m" (*variable) // input + output
+    : // No input only
+    : "memory"
+  );
+  return value;
 }
 
